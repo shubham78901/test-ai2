@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple AI Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        #chatbox {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+        }
+        .user-message {
+            background-color: #d3f8e2;
+            text-align: right;
+        }
+        .ai-message {
+            background-color: #f0f0f0;
+        }
+        #user-input {
+            padding: 10px;
+            width: 80%;
+            margin-top: 10px;
+            border-radius: 10px;
+        }
+        #send-btn {
+            padding: 10px 20px;
+            margin-top: 10px;
+            border-radius: 10px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        #send-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chatbox">
+    <div id="messages">
+        <div class="message ai-message">Hello! How can I assist you today?</div>
+    </div>
+
+    <input type="text" id="user-input" placeholder="Type your message...">
+    <button id="send-btn">Send</button>
+    <button id="voice-btn">Speak</button>
+</div>
+
+<script>
+    const sendButton = document.getElementById('send-btn');
+    const voiceButton = document.getElementById('voice-btn');
+    const userInput = document.getElementById('user-input');
+    const messages = document.getElementById('messages');
+
+    sendButton.addEventListener('click', sendMessage);
+    voiceButton.addEventListener('click', startVoiceInput);
+
+    function sendMessage() {
+        const userMessage = userInput.value;
+        if (userMessage.trim() === '') return;
+
+        appendMessage(userMessage, 'user');
+        userInput.value = '';
+
+        fetch('/get_response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_input: userMessage })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const aiMessage = data.response;
+            appendMessage(aiMessage, 'ai');
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function appendMessage(message, sender) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+        messageElement.textContent = message;
+        messages.appendChild(messageElement);
+        messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+    }
+
+    function startVoiceInput() {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Speech recognition is not supported in this browser.');
+            return;
+        }
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.start();
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            userInput.value = transcript;
+            sendMessage();
+        };
+
+        recognition.onerror = function(event) {
+            alert('Speech recognition error: ' + event.error);
+        };
+    }
+</script>
+
+</body>
+</html>
